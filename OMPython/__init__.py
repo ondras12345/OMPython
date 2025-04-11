@@ -107,30 +107,28 @@ class OMCSessionHelper:
 
         # use the provided path
         if omhome is not None:
-            self.omhome = omhome
+            self.omhome = pathlib.Path(omhome)
             return
 
         # check the environment variable
         omhome = os.environ.get('OPENMODELICAHOME')
         if omhome is not None:
-            self.omhome = omhome
+            self.omhome = pathlib.Path(omhome)
             return
 
         # Get the path to the OMC executable, if not installed this will be None
         path_to_omc = shutil.which("omc")
         if path_to_omc is not None:
-            self.omhome = os.path.dirname(os.path.dirname(path_to_omc))
+            self.omhome = pathlib.Path(path_to_omc).parents[1]
             return
 
         raise ValueError("Cannot find OpenModelica executable, please install from openmodelica.org")
 
-    def _get_omc_path(self):
-        try:
-            return os.path.join(self.omhome, 'bin', 'omc')
-        except BaseException:
-            logger.error("The OpenModelica compiler is missing in the System path (%s), please install it"
-                         % os.path.join(self.omhome, 'bin', 'omc'))
-            raise
+    def _get_omc_path(self) -> pathlib.Path:
+        omc = self.omhome / "bin" / "omc"
+        if not omc.exists():
+            raise FileNotFoundError(f"The OpenModelica compiler is missing in the System path ({omc}), please install it")
+        return omc
 
 
 class OMCSessionBase(metaclass=abc.ABCMeta):
@@ -188,14 +186,15 @@ class OMCSessionBase(metaclass=abc.ABCMeta):
 
     def _create_omc_log_file(self, suffix):
         if sys.platform == 'win32':
-            self._omc_log_file = open(os.path.join(self._temp_dir, "openmodelica.{0}.{1}.log".format(suffix, self._random_string)), 'w')
+            log_filename = f"openmodelica.{suffix}.{self._random_string}.log"
         else:
-            # this file must be closed in the destructor
-            self._omc_log_file = open(os.path.join(self._temp_dir, "openmodelica.{0}.{1}.{2}.log".format(self._currentUser, suffix, self._random_string)), 'w')
+            log_filename = f"openmodelica.{self._currentUser}.{suffix}.{self._random_string}.log"
+        # this file must be closed in the destructor
+        self._omc_log_file = open(pathlib.Path(self._temp_dir) / log_filename, "w")
 
     def _start_omc_process(self, timeout):
         if sys.platform == 'win32':
-            omhome_bin = os.path.join(self.omhome, 'bin').replace("\\", "/")
+            omhome_bin = (self.omhome / "bin").as_posix()
             my_env = os.environ.copy()
             my_env["PATH"] = omhome_bin + os.pathsep + my_env["PATH"]
             self._omc_process = subprocess.Popen(self._omc_command, stdout=self._omc_log_file, stderr=self._omc_log_file, env=my_env)
@@ -283,7 +282,7 @@ class OMCSessionBase(metaclass=abc.ABCMeta):
             omcCommand = ["docker", "exec", "--env", "USER=%s" % self._currentUser, "--user", str(self._getuid())] + self._dockerExtraArgs + [self._dockerContainer, self._dockerOpenModelicaPath]
             self._dockerCid = self._dockerContainer
         else:
-            omcCommand = [self._get_omc_path()]
+            omcCommand = [str(self._get_omc_path())]
         if self._interactivePort:
             extraFlags = extraFlags + ["--interactivePort=%d" % int(self._interactivePort)]
 
