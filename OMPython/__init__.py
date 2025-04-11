@@ -715,8 +715,8 @@ class ModelicaSystem:
         # set default command Line Options for linearization as
         # linearize() will use the simulation executable and runtime
         # flag -l to perform linearization
-        self.sendExpression('setCommandLineOptions("--linearizationDumpLanguage=python")')
-        self.sendExpression('setCommandLineOptions("--generateSymbolicLinearization")')
+        self.setCommandLineOptions("--linearizationDumpLanguage=python")
+        self.setCommandLineOptions("--generateSymbolicLinearization")
 
         self.setTempDirectory(customBuildDirectory)
 
@@ -732,10 +732,11 @@ class ModelicaSystem:
 
     def setCommandLineOptions(self, commandLineOptions: str):
         # set commandLineOptions if provided by users
-        if commandLineOptions is not None:
-            exp = f'setCommandLineOptions("{commandLineOptions}")'
-            if not self.sendExpression(exp):
-                self._check_error()
+        if commandLineOptions is None:
+            return
+        exp = f'setCommandLineOptions("{commandLineOptions}")'
+        if not self.sendExpression(exp):
+            self._check_error()
 
     def loadFile(self):
         # load file
@@ -1558,7 +1559,7 @@ class ModelicaSystem:
         """
         cName = self.modelName
         properties = ','.join(f"{key}={val}" for key, val in self.optimizeOptions.items())
-        self.sendExpression('setCommandLineOptions("-g=Optimica")')
+        self.setCommandLineOptions("-g=Optimica")
         optimizeResult = self.requestApi('optimize', cName, properties)
         self._check_error()
 
