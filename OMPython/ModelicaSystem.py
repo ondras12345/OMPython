@@ -340,7 +340,7 @@ class ModelicaSystem:
         if modelName is None:
             raise ModelicaSystemError("A modelname must be provided (argument modelName)!")
 
-        self._quantitiesList: list[dict[str, Any]] = []
+        self._quantities: list[dict[str, Any]] = []
         self._paramlist: dict[str, str] = {}  # even numerical values are stored as str
         self._inputlist: dict[str, list | None] = {}
         # _outputlist values are str before simulate(), but they can be
@@ -536,7 +536,7 @@ class ModelicaSystem:
             if scalar["causality"] == "output":
                 self._outputlist[scalar["name"]] = scalar["start"]
 
-            self._quantitiesList.append(scalar)
+            self._quantities.append(scalar)
 
     def getQuantities(self, names: Optional[str | list[str]] = None) -> list[dict]:
         """
@@ -582,16 +582,16 @@ class ModelicaSystem:
             ]
         """
         if names is None:
-            return self._quantitiesList
+            return self._quantities
 
         if isinstance(names, str):
-            r = [x for x in self._quantitiesList if x["name"] == names]
+            r = [x for x in self._quantities if x["name"] == names]
             if r == []:
                 raise KeyError(names)
             return r
 
         if isinstance(names, list):
-            return [x for y in names for x in self._quantitiesList if x["name"] == y]
+            return [x for y in names for x in self._quantities if x["name"] == y]
 
         raise ModelicaSystemError("Unhandled input for getQuantities()")
 
