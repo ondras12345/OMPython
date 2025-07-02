@@ -379,7 +379,7 @@ class ModelicaSystem:
         self._model_name = modelName  # Model class name
         self._file_name = pathlib.Path(fileName).resolve() if fileName is not None else None  # Model file/package name
         self._has_inputs = False  # for model with input quantity
-        self._simulationFlag = False  # if the model is simulated?
+        self._simulated = False  # True if the model has already been simulated
         self._csvFile: Optional[pathlib.Path] = None  # for storing inputs condition
         self._resultfile: Optional[pathlib.Path] = None  # for storing result file
         self._variableFilter = variableFilter
@@ -630,7 +630,7 @@ class ModelicaSystem:
             >>> mod.getOutputs(["y","x"])
             [np.float64(-0.24), np.float64(0.68)]
         """
-        if not self._simulationFlag:
+        if not self._simulated:
             if names is None:
                 return self._continuous
 
@@ -770,7 +770,7 @@ class ModelicaSystem:
             >>> mod.getOutputs(["out1","out2"])
             [np.float64(-0.1234), np.float64(2.1)]
         """
-        if not self._simulationFlag:
+        if not self._simulated:
             if names is None:
                 return self._outputs
             elif isinstance(names, str):
@@ -984,7 +984,7 @@ class ModelicaSystem:
         if returncode != 0 and self._resultfile.is_file():
             logger.warning(f"Return code = {returncode} but result file exists!")
 
-        self._simulationFlag = True
+        self._simulated = True
 
     def getSolutions(self, varList: Optional[str | list[str]] = None, resultfile: Optional[str] = None) -> tuple[str] | np.ndarray:
         """Extract simulation results from a result data file.
@@ -1422,7 +1422,7 @@ class ModelicaSystem:
         if returncode != 0:
             raise ModelicaSystemError(f"Linearize failed with return code: {returncode}")
 
-        self._simulationFlag = True
+        self._simulated = True
 
         # code to get the matrix and linear inputs, outputs and states
         linearFile = self._tempdir / "linearized_model.py"
